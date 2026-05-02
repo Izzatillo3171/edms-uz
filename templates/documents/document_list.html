@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Документы - СЭД{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2><i class="bi bi-file-earmark-text"></i> Документы</h2>
+  <div class="d-flex gap-2">
+    {% if user.is_secretary or user.is_head or user.is_admin %}
+    <a href="{% url 'document_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> Создать документ
+    </a>
+    {% endif %}
+    <a href="{% url 'export_documents_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success">
+      <i class="bi bi-download"></i> Скачать Excel
+    </a>
+  </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3">
+      <div class="col-lg-3">
+        <label class="form-label small text-muted">Поиск</label>
+        <input
+          type="text"
+          name="search"
+          class="form-control"
+          placeholder="Номер или название..."
+          value="{{ request.GET.search|default:'' }}"
+        />
+      </div>
+      <div class="col-lg-2">
+        <label class="form-label small text-muted">Тип документа</label>
+        <select name="doc_type" class="form-select">
+          <option value="">Все типы</option>
+          {% for value, label in form.doc_type.field.choices %}
+          {% if value %}
+          <option value="{{ value }}" {% if request.GET.doc_type == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2">
+        <label class="form-label small text-muted">Статус</label>
+        <select name="status" class="form-select">
+          <option value="">Все статусы</option>
+          {% for value, label in form.status.field.choices %}
+          {% if value %}
+          <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2">
+        <label class="form-label small text-muted">От даты</label>
+        <input
+          type="date"
+          name="date_from"
+          class="form-control"
+          value="{{ request.GET.date_from|default:'' }}"
+        />
+      </div>
+      <div class="col-lg-2">
+        <label class="form-label small text-muted">До даты</label>
+        <input
+          type="date"
+          name="date_to"
+          class="form-control"
+          value="{{ request.GET.date_to|default:'' }}"
+        />
+      </div>
+      <div class="col-lg-1 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-search"></i> Найти
+        </button>
+      </div>
+      <div class="col-lg-12">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            name="only_overdue"
+            id="only_overdue"
+            {% if request.GET.only_overdue %}checked{% endif %}
+          />
+          <label class="form-check-label" for="only_overdue">
+            <i class="bi bi-exclamation-triangle"></i> Показать только просроченные
+          </label>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Documents List -->
+<div class="row g-3">
+  {% for doc in documents %}
+  <div class="col-12">
+    <div
+      class="card document-card doc-type-{{ doc.doc_type }} {% if doc.is_overdue %}overdue-card{% endif %}"
+    >
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-2">
+            <div class="text-muted small">Рег. номер</div>
+            <div class="fw-bold">
+              <a href="{% url 'document_detail' doc.pk %}"
+                >{{ doc.reg_number|default:"—" }}</a
+              >
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-muted small">Название</div>
+            <div>{{ doc.title|truncatechars:60 }}</div>
+          </div>
+          <div class="col-md-2">
+            <div class="text-muted small">Тип</div>
+            <span
+              class="badge bg-{% if doc.doc_type == 'IN' %}primary{% elif doc.doc_type == 'OUT' %}success{% elif doc.doc_type == 'INT' %}warning{% else %}purple{% endif %}"
+            >
+              {{ doc.get_doc_type_display }}
+            </span>
+          </div>
+          <div class="col-md-2">
+            <div class="text-muted small">Статус</div>
+            <div class="d-flex flex-column gap-1">
+              <span class="status-badge status-{{ doc.status }}"
+                >{{ doc.get_status_display }}</span
+              >
+              {% if doc.doc_type == 'IN' %}
+              {% if doc.acceptance_status == 'accepted' %}
+              <span class="badge bg-success" style="font-size: 0.7rem;">
+                <i class="bi bi-check-circle"></i> Принято
+              </span>
+              {% elif doc.acceptance_status == 'rejected' %}
+              <span class="badge bg-danger" style="font-size: 0.7rem;">
+                <i class="bi bi-x-circle"></i> Отклонено
+              </span>
+              {% else %}
+              <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">
+                <i class="bi bi-hourglass-split"></i> Ожидает
+              </span>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-2 text-end">
+            <div class="text-muted small">Срок</div>
+            {% if doc.deadline %}
+            <div class="{% if doc.is_overdue %}text-danger fw-bold{% endif %}">
+              {{ doc.deadline|date:"d.m.Y" }} {% if doc.is_overdue %}
+              <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+              {% endif %}
+            </div>
+            {% else %} — {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-folder" style="font-size: 3rem"></i>
+      <p class="mt-3">Документы не найдены</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if documents.has_other_pages %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if documents.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ documents.previous_page_number }}"
+        >Предыдущая</a
+      >
+    </li>
+    {% endif %}
+
+    <li class="page-item disabled">
+      <span class="page-link"
+        >Страница {{ documents.number }} из {{ documents.paginator.num_pages
+        }}</span
+      >
+    </li>
+
+    {% if documents.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ documents.next_page_number }}"
+        >Следующая</a
+      >
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+<style>
+  .bg-purple {
+    background-color: #9c27b0 !important;
+  }
+</style>
+{% endblock %}

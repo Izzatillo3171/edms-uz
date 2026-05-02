@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Статус обращения - СЭД{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h4 class="mb-0"><i class="bi bi-info-circle"></i> Статус обращения</h4>
+      </div>
+      <div class="card-body">
+        <div class="text-center mb-4">
+          <div class="display-1 text-primary">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+          <h5 class="mt-3">{{ document.reg_number }}</h5>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Название:</strong></p>
+            <p>{{ document.title }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Статус:</strong></p>
+            <span class="status-badge status-{{ document.status }}"
+              >{{ document.get_status_display }}</span
+            >
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Дата подачи:</strong></p>
+            <p>{{ document.created_at|date:"d.m.Y H:i" }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Срок исполнения:</strong></p>
+            {% if document.deadline %}
+            <p class="{% if document.is_overdue %}text-danger fw-bold{% endif %}">
+              {{ document.deadline|date:"d.m.Y" }}
+              {% if document.is_overdue %}
+              <i class="bi bi-exclamation-triangle-fill"></i> Просрочено
+              {% endif %}
+            </p>
+            {% else %}
+            <p>—</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Destination Information -->
+        {% if document.destination_org or document.destination_department or document.destination_person %}
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Государственное учреждение:</strong></p>
+            <p>{{ document.destination_org|default:"—" }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Отдел-получатель:</strong></p>
+            <p>{{ document.destination_department|default:"—" }}</p>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Ответственное лицо:</strong></p>
+            <p>
+              {% if document.destination_person %}
+              {{ document.destination_person.get_full_name|default:document.destination_person.username }} ({{ document.destination_person.get_role_display }})
+              {% else %}
+              —
+              {% endif %}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if document.content %}
+        <div class="mb-4">
+          <p class="mb-1"><strong>Содержание:</strong></p>
+          <div class="p-3 bg-light rounded">
+            {{ document.content|linebreaks }}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Status Timeline -->
+        <div class="mt-4">
+          <h6>Этапы обработки:</h6>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-center">
+              <div
+                class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px"
+              >
+                <i class="bi bi-check"></i>
+              </div>
+              <div class="small mt-1">Подано</div>
+            </div>
+            <div class="flex-grow-1 mx-2">
+              <div class="progress" style="height: 3px">
+                <div class="progress-bar bg-success" style="width: 100%"></div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div
+                class="rounded-circle {% if document.status != 'DRAFT' %}bg-success{% else %}bg-secondary{% endif %} text-white d-inline-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px"
+              >
+                <i class="bi bi-check"></i>
+              </div>
+              <div class="small mt-1">Зарегистрировано</div>
+            </div>
+            <div class="flex-grow-1 mx-2">
+              <div class="progress" style="height: 3px">
+                <div
+                  class="progress-bar {% if document.status != 'DRAFT' %}bg-success{% else %}bg-secondary{% endif %}"
+                  style="width: 100%"
+                ></div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div
+                class="rounded-circle {% if document.status in 'RESOLUTION,IN_PROGRESS,DONE' %}bg-success{% else %}bg-secondary{% endif %} text-white d-inline-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px"
+              >
+                <i class="bi bi-check"></i>
+              </div>
+              <div class="small mt-1">На резолюции</div>
+            </div>
+            <div class="flex-grow-1 mx-2">
+              <div class="progress" style="height: 3px">
+                <div
+                  class="progress-bar {% if document.status in 'RESOLUTION,IN_PROGRESS,DONE' %}bg-success{% else %}bg-secondary{% endif %}"
+                  style="width: 100%"
+                ></div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div
+                class="rounded-circle {% if document.status == 'DONE' %}bg-success{% else %}bg-secondary{% endif %} text-white d-inline-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px"
+              >
+                <i class="bi bi-check"></i>
+              </div>
+              <div class="small mt-1">Выполнено</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="{% url 'citizen_appeal' %}" class="btn btn-outline-primary">
+        <i class="bi bi-plus-lg"></i> Подать новое обращение
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Отклонить документ - СЭД{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h4 class="mb-0"><i class="bi bi-x-circle"></i> Отклонить документ</h4>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          <strong>Внимание:</strong> При отклонении документа необходимо указать причину.
+        </div>
+
+        <div class="card mb-4 bg-light">
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <p class="mb-1"><strong>Номер документа:</strong></p>
+                <p>{{ document.reg_number }}</p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-1"><strong>Статус:</strong></p>
+                <span class="badge bg-warning">{{ document.get_acceptance_status_display }}</span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <p class="mb-1"><strong>Тема:</strong></p>
+                <p>{{ document.title }}</p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-1"><strong>Дата поступления:</strong></p>
+                <p>{{ document.created_at|date:"d.m.Y H:i" }}</p>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <p class="mb-1"><strong>От кого:</strong></p>
+                <p>{{ document.sender_person }}</p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-1"><strong>Организация:</strong></p>
+                <p>{{ document.sender_org }}</p>
+              </div>
+            </div>
+
+            {% if document.content %}
+            <div class="mt-4">
+              <p class="mb-2"><strong>Содержание:</strong></p>
+              <div class="p-3 bg-white rounded border">
+                {{ document.content|truncatewords:100 }}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="reason" class="form-label">
+              <strong>Причина отклонения <span class="text-danger">*</span></strong>
+            </label>
+            <textarea
+              class="form-control"
+              id="reason"
+              name="reason"
+              rows="4"
+              placeholder="Укажите причину, по которой документ отклоняется..."
+              required
+            ></textarea>
+            <div class="form-text">Текст причины будет отправлен отправителю документа</div>
+          </div>
+
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle"></i>
+            <strong>Внимание!</strong> После отклонения этот документ нельзя будет вернуть в статус «В ожидании».
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-trash"></i> Отклонить документ
+            </button>
+            <a href="{% url 'document_detail' document.pk %}" class="btn btn-secondary">
+              <i class="bi bi-x-lg"></i> Отмена
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

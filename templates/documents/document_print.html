@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block title %}Печать документа - СЭД{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print {
+            display: none;
+        }
+        body {
+            margin: 0;
+            padding: 1cm;
+        }
+        .print-container {
+            max-width: 100%;
+        }
+    }
+    
+    .print-container {
+        background: white;
+        padding: 40px;
+        max-width: 900px;
+        margin: 0 auto;
+        border: 1px solid #ccc;
+    }
+    
+    .print-header {
+        text-align: center;
+        border-bottom: 3px solid #1a237e;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .print-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 20px 0 10px 0;
+    }
+    
+    .print-section {
+        margin: 20px 0;
+    }
+    
+    .print-label {
+        font-weight: bold;
+        display: inline-block;
+        width: 150px;
+    }
+    
+    .print-value {
+        display: inline-block;
+        flex: 1;
+    }
+    
+    .content-box {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 15px 0;
+        background: #f9f9f9;
+        min-height: 100px;
+    }
+    
+    .resolution-box {
+        border-left: 4px solid #1a237e;
+        padding: 15px;
+        margin: 15px 0;
+        background: #f0f4ff;
+    }
+    
+    .signature-line {
+        margin-top: 40px;
+        border-top: 1px solid black;
+        width: 150px;
+        text-align: center;
+        font-size: 12px;
+    }
+    
+    .no-print {
+        margin: 20px 0;
+    }
+</style>
+
+<div class="no-print">
+    <a href="{% url 'document_detail' document.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Вернуться к документу
+    </a>
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Печать
+    </button>
+    <a href="{% url 'export_document_json' document.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-download"></i> Экспорт JSON
+    </a>
+</div>
+
+<div class="print-container">
+    <!-- Header -->
+    <div class="print-header">
+        <h2>ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ</h2>
+        <p>СИСТЕМА ЭЛЕКТРОННОГО ДОКУМЕНТООБОРОТА</p>
+        <p style="margin-top: 20px; font-size: 14px;">Печать от {{ now|date:"d.m.Y H:i" }}</p>
+    </div>
+    
+    <!-- Document Info -->
+    <div class="print-section">
+        <div class="print-title">ИНФОРМАЦИЯ О ДОКУМЕНТЕ</div>
+        <div>
+            <span class="print-label">Регистр. номер:</span>
+            <span class="print-value"><strong>{{ document.reg_number }}</strong></span>
+        </div>
+        <div>
+            <span class="print-label">Название:</span>
+            <span class="print-value">{{ document.title }}</span>
+        </div>
+        <div>
+            <span class="print-label">Тип:</span>
+            <span class="print-value">{{ document.get_doc_type_display }}</span>
+        </div>
+        <div>
+            <span class="print-label">Статус:</span>
+            <span class="print-value">{{ document.get_status_display }}</span>
+        </div>
+        <div>
+            <span class="print-label">Дата создания:</span>
+            <span class="print-value">{{ document.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        {% if document.deadline %}
+        <div>
+            <span class="print-label">Срок исполнения:</span>
+            <span class="print-value">{{ document.deadline|date:"d.m.Y" }}</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sender Info -->
+    {% if document.sender_org or document.sender_person %}
+    <div class="print-section">
+        <div class="print-title">ОТПРАВИТЕЛЬ</div>
+        {% if document.sender_org %}
+        <div>
+            <span class="print-label">Организация:</span>
+            <span class="print-value">{{ document.sender_org }}</span>
+        </div>
+        {% endif %}
+        {% if document.sender_person %}
+        <div>
+            <span class="print-label">Лицо:</span>
+            <span class="print-value">{{ document.sender_person }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Content -->
+    <div class="print-section">
+        <div class="print-title">СОДЕРЖАНИЕ</div>
+        <div class="content-box">
+            {{ document.content|linebreaks }}
+        </div>
+    </div>
+    
+    <!-- Resolutions -->
+    {% if resolutions %}
+    <div class="print-section">
+        <div class="print-title">РЕЗОЛЮЦИИ</div>
+        {% for resolution in resolutions %}
+        <div class="resolution-box">
+            <strong>Резолюция №{{ forloop.counter }}</strong> ({{ resolution.created_at|date:"d.m.Y" }})
+            <div style="margin-top: 10px;">{{ resolution.text }}</div>
+            <div style="margin-top: 10px; font-size: 12px;">
+                <span>Исполнитель: {{ resolution.executor.full_name }}</span><br>
+                <span>Срок: {% if resolution.due_date %}{{ resolution.due_date|date:"d.m.Y" }}{% else %}—{% endif %}</span>
+                {% if resolution.is_signed %}<br><span style="color: green;"><i class="bi bi-check-circle"></i> Подписано ЭЦП</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- History -->
+    {% if history %}
+    <div class="print-section">
+        <div class="print-title">ИСТОРИЯ ИЗМЕНЕНИЙ</div>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+            <tr style="background: #f0f0f0;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Дата</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">От → К</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Изменил</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Примечание</th>
+            </tr>
+            {% for item in history %}
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ item.changed_at|date:"d.m.Y H:i" }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ item.old_status|default:"—" }} → {{ item.new_status }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ item.changed_by.full_name }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ item.note }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Footer -->
+    <div style="margin-top: 50px; text-align: center; font-size: 12px; border-top: 1px solid #ccc; padding-top: 20px;">
+        <p>Документ автоматически создан системой СЭД</p>
+        <p>Печать документа не является подтверждением подписи</p>
+    </div>
+</div>
+
+<div class="no-print mt-4 mb-4">
+    <a href="{% url 'document_detail' document.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Вернуться к документу
+    </a>
+</div>
+{% endblock %}

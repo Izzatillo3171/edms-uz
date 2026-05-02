@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Уведомления - СЭД{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><i class="bi bi-bell"></i> Уведомления</h4>
+  {% if notifications %}
+  <a
+    href="{% url 'mark_all_notifications_read' %}"
+    class="btn btn-outline-secondary btn-sm"
+  >
+    <i class="bi bi-check-all"></i> Отметить все прочитанными
+  </a>
+  {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if notifications %}
+    <div class="list-group list-group-flush">
+      {% for notification in notifications %}
+      <div
+        class="list-group-item {% if not notification.is_read %}bg-light{% endif %}"
+      >
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              {% if notification.notification_type == 'NEW_DOCUMENT' %}
+              <i class="bi bi-file-earmark-plus text-primary"></i>
+              {% elif notification.notification_type == 'DOCUMENT' %}
+              <i class="bi bi-file-earmark text-primary"></i>
+              {% elif notification.notification_type == 'RESOLUTION' %}
+              <i class="bi bi-file-earmark-check text-warning"></i>
+              {% elif notification.notification_type == 'OVERDUE' %}
+              <i class="bi bi-exclamation-triangle text-danger"></i>
+              {% else %}
+              <i class="bi bi-bell text-secondary"></i>
+              {% endif %}
+              <strong>
+                <a href="{% url 'open_notification' notification.pk %}" class="text-decoration-none text-dark">
+                  {{ notification.title }}
+                </a>
+              </strong>
+              {% if not notification.is_read %}
+              <span class="badge bg-primary">Новое</span>
+              {% endif %}
+            </div>
+            <p class="mb-1 text-muted small">
+              <a href="{% url 'open_notification' notification.pk %}" class="text-decoration-none text-muted">
+                {{ notification.message }}
+              </a>
+            </p>
+            <small class="text-muted"
+              >{{ notification.created_at|date:"d.m.Y H:i" }}</small
+            >
+          </div>
+          {% if not notification.is_read %}
+          <a
+            href="{% url 'mark_notification_read' notification.pk %}"
+            class="btn btn-sm btn-outline-secondary"
+          >
+            <i class="bi bi-check"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-bell-slash d-block mb-2" style="font-size: 3rem"></i>
+      <p>Уведомлений нет</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .btn-primary {
+    background: #1a237e;
+    border: none;
+  }
+</style>
+{% endblock %}

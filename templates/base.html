@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}СЭД - Система электронного документооборота{% endblock %}
+    </title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    <style>
+      :root {
+        --sidebar-width: 260px;
+      }
+      body {
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: var(--sidebar-width);
+        min-height: 100vh;
+        background: linear-gradient(180deg, #1a237e 0%, #0d1442 100%);
+        position: fixed;
+        left: 0;
+        top: 0;
+        padding-top: 1rem;
+      }
+      .sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.8);
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        margin: 0.25rem 0.75rem;
+        transition: all 0.2s;
+      }
+      .sidebar .nav-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .sidebar .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+      .sidebar .nav-link i {
+        margin-right: 0.75rem;
+        width: 1.25rem;
+        text-align: center;
+      }
+      .main-content {
+        margin-left: var(--sidebar-width);
+        padding: 1.5rem;
+        min-height: 100vh;
+        background: #f8f9fa;
+      }
+      .brand {
+        color: #fff;
+        font-size: 1.25rem;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 1rem;
+      }
+      .brand i {
+        margin-right: 0.5rem;
+      }
+      .user-info {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+      }
+      .stat-card {
+        border: none;
+        border-radius: 1rem;
+        transition: transform 0.2s;
+      }
+      .stat-card:hover {
+        transform: translateY(-2px);
+      }
+      .stat-card .icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+      }
+      .overdue {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+        color: white;
+      }
+      .in-progress {
+        background: linear-gradient(135deg, #ffd93d 0%, #f5c800 100%);
+        color: #333;
+      }
+      .done {
+        background: linear-gradient(135deg, #6bcb77 0%, #4ade80 100%);
+        color: white;
+      }
+      .pending {
+        background: linear-gradient(135deg, #4d96ff 0%, #3b82f6 100%);
+        color: white;
+      }
+      .document-card {
+        border: none;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: box-shadow 0.2s;
+      }
+      .document-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      }
+      .document-card.overdue-card {
+        border-left: 4px solid #dc3545;
+      }
+      .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 2rem;
+        font-weight: 500;
+        display: inline-block;
+      }
+      .status-DRAFT {
+        background: #e0e0e0;
+        color: #424242;
+      }
+      .status-REGISTERED {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .status-SENT {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .status-RECEIVED {
+        background: #e0f2f1;
+        color: #00695c;
+      }
+      .status-RESOLUTION {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      .status-IN_PROGRESS {
+        background: #fce4ec;
+        color: #c2185b;
+      }
+      .status-DONE {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status-OVERDUE {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .status-REJECTED {
+        background: #ffcdd2;
+        color: #b71c1c;
+      }
+      .status-ACCEPTED {
+        background: #c8e6c9;
+        color: #1b5e20;
+      }
+      .timeline-item {
+        position: relative;
+        padding-left: 2rem;
+      }
+      .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0.4rem;
+        top: 2rem;
+        bottom: -1.5rem;
+        width: 1px;
+        background: #ddd;
+      }
+      .timeline-item:last-child::before {
+        display: none;
+      }
+      .timeline-marker {
+        position: absolute;
+        left: -0.35rem;
+        top: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+      }
+      .timeline-item i {
+        font-size: 1.2rem;
+      }
+      .doc-type-IN {
+        border-left: 3px solid #2196f3;
+      }
+      .doc-type-OUT {
+        border-left: 3px solid #4caf50;
+      }
+      .doc-type-INT {
+        border-left: 3px solid #ff9800;
+      }
+      .doc-type-APP {
+        border-left: 3px solid #9c27b0;
+      }
+      .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc3545;
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 1rem;
+        min-width: 1.25rem;
+        text-align: center;
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.3s;
+        }
+        .sidebar.show {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-left: 0;
+        }
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="brand">
+        <i class="bi bi-building"></i>
+        СЭД Узбекистан
+      </div>
+
+      <ul class="nav flex-column">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'dashboard' %}">
+            <i class="bi bi-speedometer2"></i> Главная
+          </a>
+        </li>
+
+        {% if user.is_authenticated %}
+
+        {% if user.is_secretary or user.is_head or user.is_admin %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'document_list' %}">
+            <i class="bi bi-file-earmark-text"></i> Документы
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_secretary %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'register_incoming' %}">
+            <i class="bi bi-plus-circle"></i> Регистрация входящих
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_head %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'document_list' %}">
+            <i class="bi bi-file-earmark-check"></i> Резолюции
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_executor %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'document_list' %}">
+            <i class="bi bi-list-task"></i> Мои задачи
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_citizen %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'citizen_appeal' %}">
+            <i class="bi bi-envelope"></i> Подать обращение
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_admin %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'user_list' %}">
+            <i class="bi bi-people"></i> Пользователи
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'department_list' %}">
+            <i class="bi bi-diagram-3"></i> Отделы
+          </a>
+        </li>
+        {% endif %}
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'notifications' %}">
+            <i class="bi bi-bell"></i> Уведомления {% if notifications %}
+            <span class="notification-badge">{{ notifications.count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+
+      {% if user.is_authenticated %}
+      <div class="user-info">
+        <div class="d-flex align-items-center mb-2">
+          <i class="bi bi-person-circle me-2"></i>
+          <span>{{ user.username }}</span>
+        </div>
+        <div class="small text-muted mb-2">{{ user.get_role_display }}</div>
+        <div class="d-grid gap-2">
+          <a href="{% url 'user_profile' %}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-person"></i> Профиль
+          </a>
+          <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-box-arrow-right"></i> Выйти
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      {% if messages %} {% for message in messages %}
+      <div
+        class="alert alert-{{ message.tags }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %}
+
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

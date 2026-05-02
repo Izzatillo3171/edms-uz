@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная - СЭД{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h2>
+    <i class="bi bi-speedometer2"></i>
+    {% if user.is_head or user.is_admin %}Панель управления{% elif user.is_executor %}Мои задачи{% elif user.is_secretary %}Рабочая панель{% elif user.is_citizen %}Мои обращения{% endif %}
+  </h2>
+  <p class="text-muted">
+    Добро пожаловать, {{ user.full_name|default:user.username }}!
+  </p>
+</div>
+
+<!-- Statistics Cards -->
+{% if user.is_head or user.is_admin %}
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card stat-card overdue p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Просрочено</div>
+          <div class="h2 mb-0">{{ overdue|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card in-progress p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">В работе</div>
+          <div class="h2 mb-0">{{ in_progress|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-clock-history"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card pending p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">На резолюции</div>
+          <div class="h2 mb-0">{{ pending|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-file-earmark-check"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card done p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Выполнено</div>
+          <div class="h2 mb-0">{{ done|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-check-circle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% if user.is_secretary %}
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card stat-card pending p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Входящих сегодня</div>
+          <div class="h2 mb-0">{{ incoming_today|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-arrow-down-circle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card done p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Исходящих сегодня</div>
+          <div class="h2 mb-0">{{ outgoing_today|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-arrow-up-circle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card in-progress p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Всего документов</div>
+          <div class="h2 mb-0">{{ total_documents|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-folder"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% if user.is_executor %}
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card stat-card in-progress p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Мои задачи</div>
+          <div class="h2 mb-0">{{ my_tasks.count|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-list-task"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card pending p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">В работе</div>
+          <div class="h2 mb-0">{{ pending_tasks.count|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-clock"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card overdue p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Просрочено</div>
+          <div class="h2 mb-0">{{ overdue_tasks.count|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-exclamation"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% if user.is_citizen %}
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card stat-card pending p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">Мои обращения</div>
+          <div class="h2 mb-0">{{ my_appeals.count|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-envelope"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card in-progress p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">В ожидании</div>
+          <div class="h2 mb-0">{{ pending_appeals.count|default:0 }}</div>
+        </div>
+        <div class="icon">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="bi bi-lightning"></i> Быстрые действия
+        </h5>
+        <div class="d-flex flex-wrap gap-2">
+          {% if user.is_admin %}
+          <a href="{% url 'user_list' %}" class="btn btn-primary">
+            <i class="bi bi-people"></i> Управление пользователями
+          </a>
+          <a href="{% url 'department_list' %}" class="btn btn-primary">
+            <i class="bi bi-diagram-3"></i> Управление отделами
+          </a>
+          {% endif %} {% if user.is_secretary %}
+          <a href="{% url 'register_incoming' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Регистрация входящего
+          </a>
+          {% endif %} {% if user.is_head %}
+          <a href="{% url 'document_list' %}" class="btn btn-primary">
+            <i class="bi bi-file-earmark-check"></i> Резолюции
+          </a>
+          {% endif %} {% if user.is_executor %}
+          <a href="{% url 'document_list' %}" class="btn btn-primary">
+            <i class="bi bi-list-task"></i> Мои задачи
+          </a>
+          {% endif %} {% if user.is_citizen and not user.is_admin %}
+          <a href="{% url 'citizen_appeal' %}" class="btn btn-primary">
+            <i class="bi bi-envelope-plus"></i> Подать обращение
+          </a>
+          {% endif %}
+
+          <a href="{% url 'document_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-folder"></i> Все документы
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Documents -->
+{% if user.is_head or user.is_admin %} {% if recent_documents %}
+<div class="row">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-clock-history"></i> Последние документы
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>№</th>
+                <th>Название</th>
+                <th>Тип</th>
+                <th>Статус</th>
+                <th>Срок</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in recent_documents %}
+              <tr class="{% if doc.is_overdue %}table-danger{% endif %}">
+                <td>
+                  <a href="{% url 'document_detail' doc.pk %}"
+                    >{{ doc.reg_number|default:"—" }}</a
+                  >
+                </td>
+                <td>{{ doc.title|truncatechars:50 }}</td>
+                <td>
+                  <span
+                    class="badge bg-{% if doc.doc_type == 'IN' %}primary{% elif doc.doc_type == 'OUT' %}success{% elif doc.doc_type == 'INT' %}warning{% else %}purple{% endif %}"
+                  >
+                    {{ doc.get_doc_type_display }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge status-{{ doc.status }}"
+                    >{{ doc.get_status_display }}</span
+                  >
+                </td>
+                <td>
+                  {% if doc.deadline %}
+                  <span
+                    class="{% if doc.is_overdue %}text-danger fw-bold{% endif %}"
+                  >
+                    {{ doc.deadline|date:"d.m.Y" }}
+                  </span>
+                  {% else %} — {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% endif %}
+
+<style>
+  .bg-purple {
+    background-color: #9c27b0 !important;
+  }
+</style>
+{% endblock %}

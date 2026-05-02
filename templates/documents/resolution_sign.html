@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Подпись документа (ЭЦП) - СЭД{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0">
+                <h4 class="mb-0">
+                    <i class="bi bi-pen"></i> Подписание документа (ЭЦП)
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Document Info -->
+                <div class="alert alert-info mb-4">
+                    <strong>Документ:</strong> {{ resolution.document.reg_number }}<br>
+                    <strong>Резолюция:</strong> {{ resolution.text|truncatechars:100 }}<br>
+                    <strong>Исполнитель:</strong> {{ resolution.executor.full_name }}
+                </div>
+                
+                {% if resolution.is_signed %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Документ подписан</strong> ЭЦП {{ resolution.signed_at|date:"d.m.Y H:i" }}
+                    {% if resolution.signed_by %}
+                    пользователем {{ resolution.signed_by.full_name }}
+                    {% endif %}
+                </div>
+                {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Подписать электронной подписью (ЭЦП)</label>
+                        <div class="form-check">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                name="confirm_signature" 
+                                id="confirm_signature" 
+                                required
+                            >
+                            <label class="form-check-label" for="confirm_signature">
+                                Я подтверждаю подписание этого документа своей электронной цифровой подписью
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Важно:</strong> 
+                        Подпись ЭЦП свидетельствует об официальном утверждении документа и не может быть отозвана.
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-pen"></i> Подписать ЭЦП
+                        </button>
+                        <a href="{% url 'document_detail' resolution.document.pk %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                    </div>
+                </form>
+                {% endif %}
+                
+                <hr>
+                
+                <div class="mt-4">
+                    <h6>Информация о подписи</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Статус:</strong></td>
+                            <td>
+                                {% if resolution.is_signed %}
+                                <span class="badge bg-success">Подписано</span>
+                                {% else %}
+                                <span class="badge bg-warning">Не подписано</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Подписал:</strong></td>
+                            <td>{{ resolution.signed_by.full_name|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Дата подписи:</strong></td>
+                            <td>{{ resolution.signed_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-primary {
+        background: #1a237e;
+        border: none;
+    }
+</style>
+{% endblock %}

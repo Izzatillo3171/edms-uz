@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация - СЭД{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h4 class="mb-4 text-center">
+          <i class="bi bi-person-plus"></i> Регистрация нового пользователя
+        </h4>
+
+        <form method="post">
+          {% csrf_token %} {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {% if field.name == 'password1' or field.name == 'password2' %}
+            <div class="input-group">
+              {{ field }}
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('{{ field.id_for_label }}')">
+                <i class="bi bi-eye" id="eye-{{ field.name }}"></i>
+              </button>
+            </div>
+            {% else %}
+            {{ field }}
+            {% endif %} {% if field.errors %}
+            <div class="text-danger small">{{ field.errors }}</div>
+            {% endif %} {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.name == 'password1' %}
+            <div id="password-strength" class="mt-2" style="display: none;">
+              <small class="text-muted">Сложность пароля:</small>
+              <div class="progress mt-1" style="height: 8px;">
+                <div id="strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+              </div>
+              <small id="strength-text" class="text-muted"></small>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-check-circle"></i> Зарегистрироваться
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <a href="{% url 'login' %}">Уже есть аккаунт? Войти</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .form-control,
+  .form-select {
+    border-radius: 0.5rem;
+  }
+  .btn-primary {
+    background: #1a237e;
+    border: none;
+  }
+  .input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .input-group .btn-outline-secondary {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 0;
+  }
+</style>
+
+<script>
+  function togglePassword(fieldId) {
+    const input = document.getElementById(fieldId);
+    const icon = document.getElementById('eye-' + fieldId.substring(3)); // Remove 'id_' prefix
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  }
+
+  function checkPasswordStrength(password) {
+    let strength = 0;
+    let feedback = [];
+
+    if (password.length >= 8) strength += 25;
+    else feedback.push('Минимум 8 символов');
+
+    if (/[a-z]/.test(password)) strength += 25;
+    else feedback.push('Строчные буквы');
+
+    if (/[A-Z]/.test(password)) strength += 25;
+    else feedback.push('Заглавные буквы');
+
+    if (/[0-9]/.test(password)) strength += 25;
+    else feedback.push('Цифры');
+
+    return { strength, feedback };
+  }
+
+  document.getElementById('id_password1').addEventListener('input', function() {
+    const password = this.value;
+    const strengthDiv = document.getElementById('password-strength');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthText = document.getElementById('strength-text');
+
+    if (password.length > 0) {
+      strengthDiv.style.display = 'block';
+      const { strength, feedback } = checkPasswordStrength(password);
+      
+      strengthBar.style.width = strength + '%';
+      
+      if (strength < 25) {
+        strengthBar.className = 'progress-bar bg-danger';
+        strengthText.textContent = 'Очень слабый: ' + feedback.join(', ');
+      } else if (strength < 50) {
+        strengthBar.className = 'progress-bar bg-warning';
+        strengthText.textContent = 'Слабый: ' + feedback.join(', ');
+      } else if (strength < 75) {
+        strengthBar.className = 'progress-bar bg-info';
+        strengthText.textContent = 'Средний: ' + feedback.join(', ');
+      } else {
+        strengthBar.className = 'progress-bar bg-success';
+        strengthText.textContent = 'Сильный';
+      }
+    } else {
+      strengthDiv.style.display = 'none';
+    }
+  });
+</script>
+{% endblock %}

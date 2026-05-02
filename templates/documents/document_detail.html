@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ document.reg_number }} - СЭД{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <a href="{% url 'document_list' %}" class="text-decoration-none">
+      <i class="bi bi-arrow-left"></i> К списку документов
+    </a>
+    <div class="btn-group" role="group">
+      <a href="{% url 'document_print' document.pk %}" class="btn btn-sm btn-outline-secondary" title="Печать">
+        <i class="bi bi-printer"></i> Печать
+      </a>
+      <a href="{% url 'export_document_json' document.pk %}" class="btn btn-sm btn-outline-secondary" title="Экспорт">
+        <i class="bi bi-download"></i> JSON
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <!-- Document Info -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">
+            <i class="bi bi-file-earmark-text"></i>
+            {{ document.reg_number|default:"—" }}
+          </h4>
+          <span class="status-badge status-{{ document.status }}"
+            >{{ document.get_status_display }}</span
+          >
+        </div>
+      </div>
+      <div class="card-body">
+        <h5 class="mb-3">{{ document.title }}</h5>
+
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Тип документа:</strong></p>
+            <span
+              class="badge bg-{% if document.doc_type == 'IN' %}primary{% elif document.doc_type == 'OUT' %}success{% elif document.doc_type == 'INT' %}warning{% else %}purple{% endif %}"
+            >
+              {{ document.get_doc_type_display }}
+            </span>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Срок исполнения:</strong></p>
+            {% if document.deadline %}
+            <span
+              class="{% if document.is_overdue %}text-danger fw-bold{% endif %}"
+            >
+              {{ document.deadline|date:"d.m.Y" }} {% if document.is_overdue %}
+              <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+              Просрочено {% endif %}
+            </span>
+            {% else %} — {% endif %}
+          </div>
+        </div>
+
+        {% if document.content %}
+        <div class="mb-4">
+          <h6>Содержание</h6>
+          <div class="p-3 bg-light rounded">
+            {{ document.content|linebreaks }}
+          </div>
+        </div>
+        {% endif %} {% if document.file %}
+        <div class="mb-4">
+          <h6>Файл</h6>
+          <a
+            href="{{ document.file.url }}"
+            class="btn btn-outline-primary"
+            target="_blank"
+          >
+            <i class="bi bi-download"></i> Скачать файл
+          </a>
+        </div>
+        {% endif %} {% if document.sender_org or document.sender_person %}
+        <div class="row mb-4">
+          {% if document.sender_org %}
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Отправитель (организация):</strong></p>
+            <p>{{ document.sender_org }}</p>
+          </div>
+          {% endif %} {% if document.sender_person %}
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Отправитель (ФИО):</strong></p>
+            <p>{{ document.sender_person }}</p>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Accept/Reject Actions for Incoming Documents -->
+      {% if document.doc_type == 'IN' and document.acceptance_status == 'pending' and user.is_authenticated and user.role in 'secretary|head|admin' %}
+      <div class="card-footer bg-light border-top">
+        <div class="d-flex gap-2">
+          <a href="{% url 'accept_document' document.pk %}" class="btn btn-success btn-sm">
+            <i class="bi bi-check-circle"></i> Принять документ
+          </a>
+          <a href="{% url 'reject_document' document.pk %}" class="btn btn-danger btn-sm">
+            <i class="bi bi-x-circle"></i> Отклонить документ
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Acceptance Status Display -->
+      {% if document.acceptance_status != 'pending' %}
+      <div class="card-footer bg-light border-top">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Статус приема:</strong></p>
+            {% if document.acceptance_status == 'accepted' %}
+            <span class="badge bg-success">Принято</span>
+            <p class="small text-muted mt-1">{{ document.accepted_at|date:"d.m.Y H:i" }} - {{ document.accepted_by }}</p>
+            {% elif document.acceptance_status == 'rejected' %}
+            <span class="badge bg-danger">Отклонено</span>
+            <p class="small text-muted mt-1">{{ document.accepted_at|date:"d.m.Y H:i" }} - {{ document.accepted_by }}</p>
+            {% endif %}
+          </div>
+          {% if document.rejection_reason %}
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Причина отклонения:</strong></p>
+            <p class="small">{{ document.rejection_reason }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Resolutions -->
+    {% if resolutions %}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-check"></i> Резолюции</h5>
+      </div>
+      <div class="card-body">
+        {% for resolution in resolutions %}
+        <div class="border-bottom pb-3 mb-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="mb-1">{{ resolution.text }}</p>
+              <small class="text-muted">
+                <i class="bi bi-person"></i> {{ resolution.author|default:"—" }}
+                | <i class="bi bi-calendar"></i> {{
+                resolution.created_at|date:"d.m.Y H:i" }}
+              </small>
+            </div>
+            {% if resolution.is_completed %}
+            <span class="badge bg-success">Выполнено</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">В работе</span>
+            {% endif %}
+          </div>
+          {% if resolution.executor %}
+          <div class="mt-2">
+            <small class="text-muted">
+              <i class="bi bi-person-check"></i> Исполнитель: {{
+              resolution.executor }} {% if resolution.due_date %} | Срок: {{
+              resolution.due_date|date:"d.m.Y" }} {% endif %}
+            </small>
+          </div>
+          {% endif %} {% if resolution.completion_note %}
+          <div class="mt-2 p-2 bg-light rounded">
+            <small
+              ><strong>Отчет:</strong> {{ resolution.completion_note }}</small
+            >
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- History -->
+    {% if history %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> История изменений</h5>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          {% for entry in history %}
+          <div class="timeline-item mb-4">
+            <div class="d-flex align-items-start">
+              <div class="timeline-marker">
+                {% if entry.action == 'CREATED' %}
+                <i class="bi bi-file-earmark-plus text-primary"></i>
+                {% elif entry.action == 'REGISTERED' %}
+                <i class="bi bi-check2-circle text-success"></i>
+                {% elif entry.action == 'ACCEPTED' %}
+                <i class="bi bi-check-circle text-success"></i>
+                {% elif entry.action == 'REJECTED' %}
+                <i class="bi bi-x-circle text-danger"></i>
+                {% elif entry.action == 'ASSIGNED' %}
+                <i class="bi bi-person-check text-info"></i>
+                {% elif entry.action == 'COMPLETED' %}
+                <i class="bi bi-check-all text-success"></i>
+                {% else %}
+                <i class="bi bi-arrow-right text-secondary"></i>
+                {% endif %}
+              </div>
+              <div class="timeline-content ms-3">
+                <h6 class="mb-1">
+                  <strong>{{ entry.get_action_display }}</strong>
+                </h6>
+                <small class="text-muted d-block mb-1">
+                  <i class="bi bi-person"></i> {{ entry.performed_by|default:"Система" }}
+                </small>
+                <small class="text-muted d-block">
+                  <i class="bi bi-calendar-event"></i>
+                  {{ entry.created_at|date:"d.m.Y H:i" }}
+                </small>
+                {% if entry.notes %}
+                <p class="small mt-2 mb-0 text-muted">
+                  <i class="bi bi-chat-left-text"></i> {{ entry.notes }}
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0">Действия</h5>
+      </div>
+      <div class="card-body">
+        {% if user.is_head and document.status != 'DONE' %}
+        <a
+          href="{% url 'create_resolution' document.pk %}"
+          class="btn btn-primary w-100 mb-2"
+        >
+          <i class="bi bi-plus-circle"></i> Создать резолюцию
+        </a>
+        {% endif %}
+
+        {% if user.is_executor and document.assigned_to == user and document.status == 'IN_PROGRESS' %}
+        {% for resolution in resolutions %}
+        {% if not resolution.is_completed and resolution.executor == user %}
+        <a
+          href="{% url 'complete_resolution' resolution.pk %}"
+          class="btn btn-success w-100 mb-2"
+        >
+          <i class="bi bi-check-circle"></i> Выполнить задачу
+        </a>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0">Информация</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-2"><small class="text-muted">Создан:</small></p>
+        <p class="mb-3">{{ document.created_at|date:"d.m.Y H:i" }}</p>
+
+        <p class="mb-2"><small class="text-muted">Автор:</small></p>
+        <p class="mb-3">{{ document.author|default:"—" }}</p>
+
+        {% if document.assigned_to %}
+        <p class="mb-2"><small class="text-muted">Назначен:</small></p>
+        <p class="mb-0">{{ document.assigned_to }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .bg-purple {
+    background-color: #9c27b0 !important;
+  }
+</style>
+{% endblock %}
