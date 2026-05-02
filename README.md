@@ -158,6 +158,7 @@ python manage.py runserver 8000
 ```
 proekt/
 ├── backend/
+│   ├── README.md              # Этот файл
 │   ├── manage.py
 │   ├── requirements.txt
 │   ├── sed_project/
@@ -181,10 +182,6 @@ proekt/
 │       ├── documents/         # Шаблоны документов
 │       ├── admin/             # Админ шаблоны
 │       └── notifications.html # Уведомления
-├── frontend/                  # (Резерв для React/Vue)
-├── FEATURES.md               # Описание функций
-├── README.md                 # Этот файл
-└── instructions.md           # Исходные требования
 ```
 
 ## 🌐 API маршруты
