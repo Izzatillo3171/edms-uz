@@ -283,12 +283,6 @@ def dashboard(request):
     return render(request, 'dashboard.html', context)
 
 
-@login_required
-def profile(request):
-    """User profile page"""
-    return render(request, 'profile.html', {'user': request.user})
-
-
 # ==================== Document Views ====================
 
 @login_required
@@ -303,7 +297,6 @@ def document_list(request):
         status = form.cleaned_data.get('status')
         date_from = form.cleaned_data.get('date_from')
         date_to = form.cleaned_data.get('date_to')
-        only_overdue = form.cleaned_data.get('only_overdue')
         
         if search:
             documents = documents.filter(
@@ -319,8 +312,6 @@ def document_list(request):
             documents = documents.filter(created_at__date__gte=date_from)
         if date_to:
             documents = documents.filter(created_at__date__lte=date_to)
-        if only_overdue:
-            documents = documents.filter(is_overdue=True)
     
     # Filter by role
     user = request.user
@@ -927,3 +918,21 @@ def change_password(request):
         form = PasswordChangeFormCustom()
     
     return render(request, 'documents/change_password.html', {'form': form})
+
+
+def get_users_by_department(request):
+    """AJAX endpoint to get users filtered by department"""
+    department_id = request.GET.get('department_id')
+    if department_id:
+        users = User.objects.filter(
+            department_id=department_id,
+            role__in=['secretary', 'head', 'executor']
+        ).values('id', 'full_name', 'username')
+        return HttpResponse(
+            json.dumps(list(users), ensure_ascii=False),
+            content_type='application/json; charset=utf-8'
+        )
+    return HttpResponse(
+        json.dumps([]),
+        content_type='application/json; charset=utf-8'
+    )

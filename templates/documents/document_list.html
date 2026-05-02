@@ -80,20 +80,6 @@
           <i class="bi bi-search"></i> Найти
         </button>
       </div>
-      <div class="col-lg-12">
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            name="only_overdue"
-            id="only_overdue"
-            {% if request.GET.only_overdue %}checked{% endif %}
-          />
-          <label class="form-check-label" for="only_overdue">
-            <i class="bi bi-exclamation-triangle"></i> Показать только просроченные
-          </label>
-        </div>
-      </div>
     </form>
   </div>
 </div>

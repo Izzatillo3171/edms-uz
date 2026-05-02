@@ -12,6 +12,7 @@ urlpatterns = [
     # Public pages
     path('status/', views.public_status_check, name='public_status_check'),
     path('api/statistics/', views.get_statistics_api, name='get_statistics_api'),
+    path('api/users-by-department/', views.get_users_by_department, name='get_users_by_department'),
     
     # Dashboard
     path('', views.dashboard, name='dashboard'),

@@ -104,4 +104,85 @@
     border: none;
   }
 </style>
+
+{% block extra_js %}
+<script>
+// Filter destination_person based on selected department
+document.addEventListener('DOMContentLoaded', function() {
+  const departmentSelect = document.getElementById('id_destination_department');
+  const personSelect = document.getElementById('id_destination_person');
+  
+  if (!departmentSelect || !personSelect) return;
+  
+  // Store all options with their department IDs
+  const allPersonOptions = Array.from(personSelect.options).slice(1); // Skip the first empty option
+  const personDepartmentMap = {};
+  
+  // Parse department from option text (format: "Name (Department)")
+  allPersonOptions.forEach(option => {
+    const text = option.textContent;
+    const match = text.match(/\((.+)\)/);
+    if (match) {
+      personDepartmentMap[option.value] = match[1];
+    }
+  });
+  
+  // Function to filter persons by department
+  function filterPersons() {
+    const selectedDeptId = departmentSelect.value;
+    const selectedDeptText = departmentSelect.options[departmentSelect.selectedIndex]?.text;
+    
+    // Clear current options except the first (empty) one
+    personSelect.innerHTML = '<option value="">---------</option>';
+    
+    if (selectedDeptId && selectedDeptText) {
+      // Fetch users from the selected department via AJAX
+      fetch(`/api/users-by-department/?department_id=${selectedDeptId}`)
+        .then(response => response.json())
+        .then(users => {
+          users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.full_name || user.username} (${selectedDeptText})`;
+            personSelect.appendChild(option);
+          });
+        })
+        .catch(error => {
+          console.error('Ошибка загрузки пользователей:', error);
+          // Fallback to local filtering
+          allPersonOptions.forEach(option => {
+            if (personDepartmentMap[option.value] === selectedDeptText) {
+              personSelect.appendChild(option.cloneNode(true));
+            }
+          });
+        });
+    }
+  }
+  
+  // Listen to department changes
+  departmentSelect.addEventListener('change', filterPersons);
+  
+  // Listen to person changes to auto-select department
+  personSelect.addEventListener('change', function() {
+    if (!departmentSelect.value && this.value) {
+      // Find department for selected person
+      const selectedOption = this.options[this.selectedIndex];
+      const optionText = selectedOption.textContent;
+      const match = optionText.match(/\((.+)\)/);
+      
+      if (match) {
+        const deptName = match[1];
+        // Find and select the department
+        for (let i = 0; i < departmentSelect.options.length; i++) {
+          if (departmentSelect.options[i].text === deptName) {
+            departmentSelect.value = departmentSelect.options[i].value;
+            break;
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}
 {% endblock %}

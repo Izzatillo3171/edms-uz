@@ -112,7 +112,7 @@ class CitizenAppealForm(forms.ModelForm):
         queryset=Department.objects.all(),
         widget=forms.Select(attrs={
             'class': 'form-select',
-            'id': 'destination_department'
+            'id': 'id_destination_department'
         }),
         label='Отдел-получатель',
         required=True
@@ -121,15 +121,30 @@ class CitizenAppealForm(forms.ModelForm):
         queryset=User.objects.filter(role__in=['secretary', 'head', 'executor']),
         widget=forms.Select(attrs={
             'class': 'form-select',
-            'id': 'destination_person'
+            'id': 'id_destination_person',
+            'data-department': ''  # Will be filled by JavaScript
         }),
         label='Ответственное лицо',
         required=True
     )
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add department info to person choices
+        person_field = self.fields['destination_person']
+        person_choices = [(u.id, f"{u.full_name or u.username} ({u.department.name if u.department else 'Без отдела'})")
+                          for u in User.objects.filter(role__in=['secretary', 'head', 'executor']).select_related('department')]
+        person_field.choices = [('', '---------')] + person_choices
+    
     class Meta:
         model = Document
         fields = ('title', 'content', 'sender_person', 'destination_org', 'destination_department', 'destination_person')
+        labels = {
+            'title': 'Тема обращения',
+            'content': 'Содержание обращения',
+            'sender_person': 'Ваше ФИО',
+            'destination_org': 'Государственное учреждение',
+        }
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control', 
@@ -156,6 +171,11 @@ class ResolutionForm(forms.ModelForm):
     class Meta:
         model = Resolution
         fields = ('executor', 'text', 'due_date')
+        labels = {
+            'executor': 'Исполнитель',
+            'text': 'Текст резолюции',
+            'due_date': 'Срок исполнения',
+        }
         widgets = {
             'executor': forms.Select(attrs={'class': 'form-select'}),
             'text': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Текст резолюции'}),
@@ -168,6 +188,9 @@ class ResolutionUpdateForm(forms.ModelForm):
     class Meta:
         model = Resolution
         fields = ('completion_note',)
+        labels = {
+            'completion_note': 'Отчет о выполнении',
+        }
         widgets = {
             'completion_note': forms.Textarea(attrs={
                 'class': 'form-control', 
@@ -182,10 +205,15 @@ class DepartmentForm(forms.ModelForm):
     class Meta:
         model = Department
         fields = ('name', 'code', 'description')
+        labels = {
+            'name': 'Название отдела',
+            'code': 'Код отдела',
+            'description': 'Описание',
+        }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название отдела'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: IT, HR'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Описание отдела'}),
         }
 
 
@@ -194,6 +222,9 @@ class DocumentStatusForm(forms.ModelForm):
     class Meta:
         model = Document
         fields = ('status',)
+        labels = {
+            'status': 'Статус документа',
+        }
         widgets = {
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
@@ -233,11 +264,6 @@ class DocumentSearchForm(forms.Form):
             'type': 'date'
         })
     )
-    only_overdue = forms.BooleanField(
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        label='Показать только просроченные'
-    )
 
 
 class UserProfileForm(forms.ModelForm):
@@ -245,9 +271,18 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'full_name', 'phone', 'department')
+        labels = {
+            'username': 'Логин',
+            'email': 'Электронная почта',
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+            'full_name': 'Полное имя (ФИО)',
+            'phone': 'Телефон',
+            'department': 'Отдел',
+        }
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Электронная почта'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Имя'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Фамилия'}),
             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ФИО'}),

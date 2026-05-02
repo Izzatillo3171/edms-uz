@@ -148,8 +148,7 @@
               <p class="mb-1">{{ resolution.text }}</p>
               <small class="text-muted">
                 <i class="bi bi-person"></i> {{ resolution.author|default:"—" }}
-                | <i class="bi bi-calendar"></i> {{
-                resolution.created_at|date:"d.m.Y H:i" }}
+                | <i class="bi bi-calendar"></i> {{ resolution.created_at|date:"d.m.Y H:i" }}
               </small>
             </div>
             {% if resolution.is_completed %}
@@ -161,12 +160,12 @@
           {% if resolution.executor %}
           <div class="mt-2">
             <small class="text-muted">
-              <i class="bi bi-person-check"></i> Исполнитель: {{
-              resolution.executor }} {% if resolution.due_date %} | Срок: {{
-              resolution.due_date|date:"d.m.Y" }} {% endif %}
+              <i class="bi bi-person-check"></i> Исполнитель: {{ resolution.executor }}
+              {% if resolution.due_date %} | Срок: {{ resolution.due_date|date:"d.m.Y" }} {% endif %}
             </small>
           </div>
-          {% endif %} {% if resolution.completion_note %}
+          {% endif %}
+          {% if resolution.completion_note %}
           <div class="mt-2 p-2 bg-light rounded">
             <small
               ><strong>Отчет:</strong> {{ resolution.completion_note }}</small
