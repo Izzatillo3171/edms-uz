@@ -406,3 +406,96 @@ class AuditLog(models.Model):
     
     def __str__(self):
         return f"{self.action} {self.object_type}#{self.object_id} - {self.user}"
+
+
+class DocumentTransfer(models.Model):
+    """
+    Model for tracking document transfers between department heads.
+    Allows heads to send documents to other department heads with files.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'В ожидании'),
+        ('accepted', 'Принято'),
+        ('rejected', 'Отклонено'),
+    ]
+    
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name='transfers',
+        help_text='Документ для передачи'
+    )
+    
+    # From (sender)
+    from_department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_transfers',
+        help_text='Отдел отправителя'
+    )
+    from_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_transfers',
+        help_text='Руководитель-отправитель'
+    )
+    
+    # To (receiver)
+    to_department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='received_transfers',
+        help_text='Отдел получателя'
+    )
+    to_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='received_transfers',
+        help_text='Руководитель-получатель'
+    )
+    
+    # File and notes
+    transfer_file = models.FileField(
+        upload_to='transfers/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='Сопроводительный документ'
+    )
+    transfer_note = models.TextField(
+        blank=True,
+        help_text='Примечание к передаче'
+    )
+    
+    # Status tracking
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Статус передачи'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='accepted_transfers',
+        help_text='Руководитель, принявший документ'
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        help_text='Причина отклонения'
+    )
+    
+    class Meta:
+        verbose_name = 'Передача документа'
+        verbose_name_plural = 'Передачи документов'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Передача {self.document.reg_number} из {self.from_department} в {self.to_department}"

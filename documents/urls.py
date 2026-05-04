@@ -47,4 +47,11 @@ urlpatterns = [
     path('notifications/<int:notification_id>/open/', views.open_notification, name='open_notification'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    
+    # Document Transfers
+    path('documents/<int:pk>/transfer/', views.transfer_document, name='transfer_document'),
+    path('transfers/incoming/', views.incoming_transfers, name='incoming_transfers'),
+    path('transfers/<int:transfer_id>/accept/', views.accept_transfer, name='accept_transfer'),
+    path('transfers/<int:transfer_id>/reject/', views.reject_transfer, name='reject_transfer'),
+    path('transfers/<int:transfer_id>/create-resolution/', views.create_resolution_on_transfer, name='create_resolution_on_transfer'),
 ]

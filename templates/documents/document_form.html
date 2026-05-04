@@ -16,12 +16,15 @@
       </div>
       <div class="card-body">
         <form method="post" enctype="multipart/form-data">
-          {% csrf_token %} {% for field in form %}
+          {% csrf_token %} 
+          {% for field in form %}
           <div class="mb-3">
             <label class="form-label">{{ field.label }}</label>
-            {{ field }} {% if field.errors %}
+            {{ field }} 
+            {% if field.errors %}
             <div class="text-danger small">{{ field.errors }}</div>
-            {% endif %} {% if field.help_text %}
+            {% endif %} 
+            {% if field.help_text %}
             <div class="form-text">{{ field.help_text }}</div>
             {% endif %}
           </div>
@@ -54,4 +57,56 @@
     border: none;
   }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const departmentSelect = document.getElementById('id_destination_department');
+  const personSelect = document.getElementById('id_destination_person');
+  
+  if (!departmentSelect || !personSelect) return;
+  
+  // Clear person select when page loads
+  personSelect.innerHTML = '<option value="">---------</option>';
+  personSelect.disabled = true;
+  
+  departmentSelect.addEventListener('change', function() {
+    const departmentId = this.value;
+    
+    if (!departmentId) {
+      personSelect.innerHTML = '<option value="">---------</option>';
+      personSelect.disabled = true;
+      return;
+    }
+    
+    // Fetch heads from selected department
+    fetch(`/api/users-by-department/?department_id=${departmentId}&role=head`)
+      .then(response => response.json())
+      .then(data => {
+        personSelect.innerHTML = '<option value="">---------</option>';
+        
+        if (data.length > 0) {
+          data.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.full_name;
+            personSelect.appendChild(option);
+          });
+          personSelect.disabled = false;
+        } else {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'Нет руководителей в этом отделе';
+          option.disabled = true;
+          personSelect.appendChild(option);
+          personSelect.disabled = true;
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        personSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+        personSelect.disabled = true;
+      });
+  });
+});
+</script>
 {% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Department, Document, Notification, Resolution
+from .models import User, Department, Document, Notification, Resolution, DocumentHistory, DocumentTransfer
 
 # Register your models here.
 
@@ -30,3 +30,15 @@ class NotificationAdmin(admin.ModelAdmin):
 class ResolutionAdmin(admin.ModelAdmin):
     list_display = ('document', 'text', 'created_at', 'author')
     search_fields = ('text',)
+
+@admin.register(DocumentHistory)
+class DocumentHistoryAdmin(admin.ModelAdmin):
+    list_display = ('document', 'action', 'performed_by', 'created_at')
+    list_filter = ('action', 'created_at')
+    search_fields = ('document__reg_number',)
+
+@admin.register(DocumentTransfer)
+class DocumentTransferAdmin(admin.ModelAdmin):
+    list_display = ('document', 'from_department', 'to_department', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('document__reg_number',)

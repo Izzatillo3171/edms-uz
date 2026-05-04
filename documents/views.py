@@ -349,15 +349,16 @@ def document_detail(request, pk):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_secretary() or u.is_head() or u.is_admin())
+@user_passes_test(lambda u: u.is_head())
 def document_create(request):
-    """Create new document"""
+    """Создание нового документа - только для руководителей"""
     if request.method == 'POST':
         form = DocumentForm(request.POST, request.FILES)
         if form.is_valid():
             doc = form.save(commit=False)
             doc.author = request.user
             doc.status = 'REGISTERED'
+            doc.doc_type = 'INT'  # Внутридокумент по умолчанию
             doc.save()
             
             # Create history entry
@@ -365,10 +366,31 @@ def document_create(request):
                 document=doc,
                 action='REGISTERED',
                 performed_by=request.user,
-                notes='Документ зарегистрирован'
+                notes='Документ создан и отправлен'
             )
             
-            messages.success(request, f'Документ {doc.reg_number} успешно создан')
+            # Create transfer if destination person is selected
+            if doc.destination_person:
+                from .models import DocumentTransfer
+                transfer = DocumentTransfer.objects.create(
+                    document=doc,
+                    from_department=request.user.department,
+                    from_user=request.user,
+                    to_department=doc.destination_person.department,
+                    to_user=doc.destination_person,
+                    transfer_note=f'Документ от {request.user.full_name}'
+                )
+                
+                # Create notification
+                Notification.objects.create(
+                    user=doc.destination_person,
+                    notification_type='NEW_DOCUMENT',
+                    title='Входящий документ',
+                    message=f'Руководитель {request.user.full_name} отправил документ "{doc.title}"',
+                    document=doc
+                )
+            
+            messages.success(request, f'Документ успешно создан и отправлен')
             return redirect('document_detail', pk=doc.pk)
     else:
         form = DocumentForm()
@@ -921,12 +943,14 @@ def change_password(request):
 
 
 def get_users_by_department(request):
-    """AJAX endpoint to get users filtered by department"""
+    """AJAX endpoint to get users filtered by department and role"""
     department_id = request.GET.get('department_id')
+    role = request.GET.get('role', 'head')  # Default to head
+    
     if department_id:
         users = User.objects.filter(
             department_id=department_id,
-            role__in=['secretary', 'head', 'executor']
+            role=role
         ).values('id', 'full_name', 'username')
         return HttpResponse(
             json.dumps(list(users), ensure_ascii=False),
@@ -936,3 +960,214 @@ def get_users_by_department(request):
         json.dumps([]),
         content_type='application/json; charset=utf-8'
     )
+
+
+# ==================== Document Transfer Views ====================
+
+@login_required
+@user_passes_test(lambda u: u.is_head())
+def transfer_document(request, pk):
+    """Transfer document to another department head"""
+    from .models import DocumentTransfer
+    
+    document = get_object_or_404(Document, pk=pk)
+    
+    # Verify document belongs to user's department or user is author
+    if document.destination_department != request.user.department and document.author != request.user:
+        messages.error(request, 'Вы не имеете прав на передачу этого документа')
+        return redirect('document_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = DocumentTransferForm(request.POST, request.FILES, user=request.user, document=document)
+        if form.is_valid():
+            transfer = form.save(commit=False)
+            transfer.document = document
+            transfer.from_department = request.user.department
+            transfer.from_user = request.user
+            transfer.to_department = transfer.to_user.department
+            transfer.save()
+            
+            # Create notification for recipient
+            Notification.objects.create(
+                user=transfer.to_user,
+                notification_type='NEW_DOCUMENT',
+                title='Входящий документ',
+                message=f'Руководитель {request.user.full_name} передал документ "{document.title}" на рассмотрение',
+                document=document
+            )
+            
+            messages.success(request, f'Документ передан руководителю {transfer.to_user.full_name}')
+            return redirect('document_detail', pk=pk)
+    else:
+        form = DocumentTransferForm(user=request.user, document=document)
+    
+    return render(request, 'documents/transfer_document.html', {
+        'form': form,
+        'document': document
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_head())
+def incoming_transfers(request):
+    """View incoming document transfers"""
+    from .models import DocumentTransfer
+    
+    transfers = DocumentTransfer.objects.filter(to_user=request.user).select_related(
+        'document', 'from_user', 'from_department'
+    ).order_by('-created_at')
+    
+    pending = transfers.filter(status='pending')
+    accepted = transfers.filter(status='accepted')
+    rejected = transfers.filter(status='rejected')
+    
+    context = {
+        'transfers': transfers,
+        'pending_count': pending.count(),
+        'accepted_count': accepted.count(),
+        'rejected_count': rejected.count(),
+    }
+    
+    return render(request, 'documents/incoming_transfers.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_head())
+def accept_transfer(request, transfer_id):
+    """Accept incoming document transfer and optionally create resolution"""
+    from .models import DocumentTransfer
+    
+    transfer = get_object_or_404(DocumentTransfer, pk=transfer_id, to_user=request.user)
+    document = transfer.document
+    
+    if request.method == 'POST':
+        transfer.status = 'accepted'
+        transfer.accepted_by = request.user
+        transfer.accepted_at = timezone.now()
+        transfer.save()
+        
+        # Update document status
+        document.status = 'RECEIVED'
+        document.acceptance_status = 'accepted'
+        document.accepted_by = request.user
+        document.accepted_at = timezone.now()
+        document.save()
+        
+        # Create history entry
+        DocumentHistory.objects.create(
+            document=document,
+            action='RECEIVED',
+            performed_by=request.user,
+            notes=f'Документ принят от {transfer.from_user.full_name} ({transfer.from_department.name})'
+        )
+        
+        # Create notification
+        Notification.objects.create(
+            user=transfer.from_user,
+            notification_type='COMPLETED',
+            title='Документ принят',
+            message=f'Документ "{document.title}" принят руководителем {request.user.full_name}',
+            document=document
+        )
+        
+        messages.success(request, 'Документ принят. Вы можете создать резолюцию.')
+        return redirect('create_resolution_on_transfer', transfer_id=transfer_id)
+    
+    return render(request, 'documents/accept_transfer.html', {
+        'transfer': transfer,
+        'document': document
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_head())
+def create_resolution_on_transfer(request, transfer_id):
+    """Create resolution after accepting document transfer"""
+    from .models import DocumentTransfer
+    
+    transfer = get_object_or_404(DocumentTransfer, pk=transfer_id, to_user=request.user)
+    
+    # Only allow if transfer is accepted
+    if transfer.status != 'accepted':
+        messages.error(request, 'Документ не принят')
+        return redirect('incoming_transfers')
+    
+    document = transfer.document
+    
+    if request.method == 'POST':
+        form = ResolutionForm(request.POST)
+        if form.is_valid():
+            resolution = form.save(commit=False)
+            resolution.document = document
+            resolution.author = request.user
+            resolution.save()
+            
+            # Update document status
+            document.status = 'IN_PROGRESS'
+            document.save()
+            
+            # Create history entry
+            DocumentHistory.objects.create(
+                document=document,
+                action='IN_PROGRESS',
+                performed_by=request.user,
+                notes=f'Резолюция назначена исполнителю: {resolution.executor.full_name} ({resolution.executor.get_role_display()})'
+            )
+            
+            # Create notification for executor
+            if resolution.executor:
+                Notification.objects.create(
+                    user=resolution.executor,
+                    notification_type='RESOLUTION',
+                    title='Новая резолюция',
+                    message=f'Вам назначена резолюция к документу "{document.title}" от {request.user.full_name}',
+                    document=document
+                )
+            
+            messages.success(request, 'Резолюция создана')
+            return redirect('document_detail', pk=document.pk)
+    else:
+        form = ResolutionForm()
+    
+    context = {
+        'form': form,
+        'document': document,
+        'transfer': transfer,
+    }
+    
+    return render(request, 'documents/create_resolution_on_transfer.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_head())
+def reject_transfer(request, transfer_id):
+    """Reject incoming document transfer"""
+    from .models import DocumentTransfer
+    
+    transfer = get_object_or_404(DocumentTransfer, pk=transfer_id, to_user=request.user)
+    
+    if request.method == 'POST':
+        rejection_reason = request.POST.get('rejection_reason', '')
+        
+        transfer.status = 'rejected'
+        transfer.accepted_by = request.user
+        transfer.accepted_at = timezone.now()
+        transfer.rejection_reason = rejection_reason
+        transfer.save()
+        
+        # Create notification for sender
+        Notification.objects.create(
+            user=transfer.from_user,
+            notification_type='COMPLETED',
+            title='Документ отклонен',
+            message=f'Документ "{transfer.document.title}" отклонен. Причина: {rejection_reason}',
+            document=transfer.document
+        )
+        
+        messages.success(request, 'Документ отклонен')
+        return redirect('incoming_transfers')
+    
+    return render(request, 'documents/reject_transfer.html', {
+        'transfer': transfer,
+        'document': transfer.document
+    })

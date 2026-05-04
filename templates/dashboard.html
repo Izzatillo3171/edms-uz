@@ -193,26 +193,25 @@
           <i class="bi bi-lightning"></i> Быстрые действия
         </h5>
         <div class="d-flex flex-wrap gap-2">
-          {% if user.is_admin %}
-          <a href="{% url 'user_list' %}" class="btn btn-primary">
-            <i class="bi bi-people"></i> Управление пользователями
+          {% if user.is_head %}
+          <a href="{% url 'document_create' %}" class="btn btn-success">
+            <i class="bi bi-file-earmark-plus"></i> Создать документ
           </a>
-          <a href="{% url 'department_list' %}" class="btn btn-primary">
-            <i class="bi bi-diagram-3"></i> Управление отделами
+          <a href="{% url 'incoming_transfers' %}" class="btn btn-primary">
+            <i class="bi bi-inbox"></i> Входящие документы
           </a>
-          {% endif %} {% if user.is_secretary %}
+          {% endif %}
+          {% if user.is_secretary %}
           <a href="{% url 'register_incoming' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Регистрация входящего
           </a>
-          {% endif %} {% if user.is_head %}
-          <a href="{% url 'document_list' %}" class="btn btn-primary">
-            <i class="bi bi-file-earmark-check"></i> Резолюции
-          </a>
-          {% endif %} {% if user.is_executor %}
+          {% endif %}
+          {% if user.is_executor %}
           <a href="{% url 'document_list' %}" class="btn btn-primary">
             <i class="bi bi-list-task"></i> Мои задачи
           </a>
-          {% endif %} {% if user.is_citizen and not user.is_admin %}
+          {% endif %}
+          {% if user.is_citizen and not user.is_admin %}
           <a href="{% url 'citizen_appeal' %}" class="btn btn-primary">
             <i class="bi bi-envelope-plus"></i> Подать обращение
           </a>

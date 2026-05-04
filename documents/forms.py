@@ -1,7 +1,7 @@
 # filepath: backend/documents/forms.py
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import User, Document, Resolution, Department
+from .models import User, Document, Resolution, Department, DocumentTransfer
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -76,20 +76,47 @@ class UserLoginForm(AuthenticationForm):
 
 
 class DocumentForm(forms.ModelForm):
-    """Form for creating/editing documents"""
+    """Форма для создания документов - только для руководителей"""
+    
+    destination_department = forms.ModelChoiceField(
+        queryset=Department.objects.all(),
+        label='Отдел-получатель',
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_destination_department'}),
+        required=False,
+        help_text='Выберите отдел, которому направляется документ'
+    )
+    
+    destination_person = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='head'),
+        label='Руководитель получатель',
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_destination_person'}),
+        required=False,
+        help_text='Выберите руководителя из выбранного отдела'
+    )
+    
     class Meta:
         model = Document
-        fields = ('title', 'doc_type', 'content', 'file', 
-                  'sender_org', 'sender_person', 'assigned_to')
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'doc_type': forms.Select(attrs={'class': 'form-select'}),
-            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
-            'file': forms.FileInput(attrs={'class': 'form-control'}),
-            'sender_org': forms.TextInput(attrs={'class': 'form-control'}),
-            'sender_person': forms.TextInput(attrs={'class': 'form-control'}),
-            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
+        fields = ('title', 'doc_type', 'content', 'file', 'destination_department', 'destination_person')
+        labels = {
+            'title': 'Название документа',
+            'doc_type': 'Тип документа',
+            'content': 'Содержание',
+            'file': 'Файл документа',
         }
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название документа'}),
+            'doc_type': forms.Select(attrs={'class': 'form-select'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Содержание документа'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        # If destination_department is selected, destination_person must be selected
+        if cleaned_data.get('destination_department') and not cleaned_data.get('destination_person'):
+            self.add_error('destination_person', 'Выберите руководителя получателя')
+        return cleaned_data
+
 
 
 class IncomingDocumentForm(forms.ModelForm):
@@ -326,3 +353,45 @@ class PasswordChangeFormCustom(forms.Form):
                 raise forms.ValidationError('Пароли не совпадают')
         
         return cleaned_data
+
+
+class DocumentTransferForm(forms.ModelForm):
+    """Form for transferring documents to another department head"""
+    
+    to_user = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='head'),
+        label='Руководитель получатель',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='Выберите руководителя другого отдела'
+    )
+    
+    class Meta:
+        model = DocumentTransfer
+        fields = ('to_user', 'transfer_file', 'transfer_note')
+        labels = {
+            'to_user': 'Руководитель получатель',
+            'transfer_file': 'Загрузить документ',
+            'transfer_note': 'Примечание к передаче',
+        }
+        widgets = {
+            'transfer_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'transfer_note': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Введите примечание или инструкции для получателя...'
+            }),
+        }
+    
+    def __init__(self, *args, user=None, document=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.document = document
+        
+        # Filter to_user to exclude current user's department head
+        if user and user.department:
+            self.fields['to_user'].queryset = User.objects.filter(
+                role='head',
+                department__isnull=False
+            ).exclude(department=user.department)
+        else:
+            self.fields['to_user'].queryset = User.objects.filter(role='head')
